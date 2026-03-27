@@ -10,6 +10,7 @@ import {
   LogOut,
   TrendingUp,
 } from "lucide-react";
+import AgentTab from "./AgentTab";
 
 interface DashboardProps {
   onLogout: () => void;
