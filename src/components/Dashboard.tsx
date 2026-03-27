@@ -10,6 +10,7 @@ import {
   LogOut,
   TrendingUp,
 } from "lucide-react";
+import AgentTab from "./AgentTab";
 
 interface DashboardProps {
   onLogout: () => void;
@@ -132,7 +133,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === "dashboard" && <DashboardContent />}
-          {activeTab !== "dashboard" && (
+          {activeTab === "agent" && <AgentTab />}
+          {activeTab !== "dashboard" && activeTab !== "agent" && (
             <PlaceholderTab
               icon={navItems.find(n => n.id === activeTab)?.icon || LayoutDashboard}
               title={navItems.find(n => n.id === activeTab)?.label || ""}
