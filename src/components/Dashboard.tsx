@@ -11,6 +11,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import AgentTab from "./AgentTab";
+import LandingPageBuilder from "./LandingPageBuilder";
 
 interface DashboardProps {
   onLogout: () => void;
