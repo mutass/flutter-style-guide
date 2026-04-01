@@ -135,7 +135,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
           {activeTab === "dashboard" && <DashboardContent />}
           {activeTab === "agent" && <AgentTab />}
-          {activeTab !== "dashboard" && activeTab !== "agent" && (
+          {activeTab === "pages" && <LandingPageBuilder />}
+          {activeTab !== "dashboard" && activeTab !== "agent" && activeTab !== "pages" && (
             <PlaceholderTab
               icon={navItems.find(n => n.id === activeTab)?.icon || LayoutDashboard}
               title={navItems.find(n => n.id === activeTab)?.label || ""}
