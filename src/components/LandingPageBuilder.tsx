@@ -8,9 +8,6 @@ import {
   Tablet,
   Smartphone,
   BookOpen,
-  Check,
-  ArrowRepeat,
-  X,
 } from "lucide-react";
 
 const exampleBooks = [
