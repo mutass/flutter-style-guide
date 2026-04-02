@@ -1,16 +1,16 @@
 import { useState, useRef } from "react";
 import {
   FileText,
-  Upload,
   BookOpen,
   Sparkles,
   Download,
   Eye,
   Book,
-  Star,
   ShieldCheck,
   Info,
   CheckCircle,
+  Upload,
+  Loader2,
 } from "lucide-react";
 
 const exampleBooks = [
@@ -41,11 +41,7 @@ const exampleBooks = [
 ];
 
 function escapeHtml(str: string) {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 function detectTitle(text: string) {
@@ -62,6 +58,8 @@ function detectAuthor(text: string) {
   for (const line of lines) {
     if (/by|author/i.test(line)) return line.replace(/by|author/i, "").trim();
   }
+  const secondLine = text.split("\n")[1]?.trim();
+  if (secondLine && secondLine.length < 50 && !/chapter/i.test(secondLine)) return secondLine;
   return "Author";
 }
 
@@ -72,28 +70,50 @@ function formatManuscript(text: string, format: string) {
   while ((match = chapterRegex.exec(text)) !== null) {
     chapters.push({ title: match[0].trim(), index: match.index });
   }
+
+  // Also detect "Prologue", "Foreword", "Introduction", "Conclusion", "Epilogue"
+  const sectionRegex = /(?:^|\n)(Prologue|Foreword|Introduction|Conclusion|Epilogue)\b/gi;
+  while ((match = sectionRegex.exec(text)) !== null) {
+    chapters.push({ title: match[1].trim(), index: match.index });
+  }
+  chapters.sort((a, b) => a.index - b.index);
   if (chapters.length === 0) chapters.push({ title: "Chapter 1", index: 0 });
 
   const title = detectTitle(text);
   const author = detectAuthor(text);
   const year = new Date().getFullYear();
+  const isEbook = format === "ebook";
+  const gutterStyle = !isEbook ? "padding: 40px 60px 40px 80px;" : "padding: 40px;";
 
-  let html = `<div class="kdp-content">`;
-  html += `<h1 style="text-align:center; margin-top:80px; font-size:1.8rem;">${escapeHtml(title)}</h1>`;
-  html += `<p style="text-align:center; color:#666;">by ${escapeHtml(author)}</p>`;
-  html += `<hr style="margin:2rem 0; border-color:#eee;" />`;
-  html += `<h2 style="text-align:center; font-size:1.4rem;">Table of Contents</h2>`;
-  html += `<div style="background:#F9FAFC; padding:1.5rem; border-radius:12px; margin:2rem 0;">`;
+  let html = `<div class="kdp-content" style="font-family: 'Georgia', serif; max-width: 700px; margin: 0 auto; ${gutterStyle}">`;
+  
+  // Title page
+  html += `<div style="text-align:center; padding: 60px 0 40px;">`;
+  html += `<h1 style="font-size:2rem; font-weight:bold; margin-bottom:8px; color:#1A2C3E;">${escapeHtml(title)}</h1>`;
+  html += `<p style="font-size:1rem; color:#666; margin-bottom:4px;">by ${escapeHtml(author)}</p>`;
+  html += `<div style="width:60px; height:2px; background:#1A5F7A; margin:20px auto;"></div>`;
+  html += `</div>`;
 
+  // Copyright
+  html += `<div style="text-align:center; color:#999; font-size:0.8rem; margin-bottom:40px;">`;
+  html += `<p>© ${year} ${escapeHtml(author)}. All rights reserved.</p>`;
+  html += `<p style="margin-top:4px;">Formatted by AnyWay Formatter</p>`;
+  html += `</div>`;
+
+  // Table of Contents
+  html += `<div style="margin-bottom:40px;">`;
+  html += `<h2 style="text-align:center; font-size:1.3rem; color:#1A2C3E; margin-bottom:16px;">Table of Contents</h2>`;
+  html += `<div style="background:#F9FAFC; padding:20px; border-radius:10px; border:1px solid #eee;">`;
   for (let i = 0; i < chapters.length; i++) {
-    if (format === "ebook") {
-      html += `<div style="display:flex; justify-content:space-between; margin:0.5rem 0;"><a href="#ch-${i}" style="color:#1A5F7A; text-decoration:none;">${escapeHtml(chapters[i].title)}</a><span>...</span></div>`;
+    if (isEbook) {
+      html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dotted #e0e0e0;"><a href="#ch-${i}" style="color:#1A5F7A; text-decoration:none; font-size:0.95rem;">${escapeHtml(chapters[i].title)}</a><span style="color:#999;">${i + 1}</span></div>`;
     } else {
-      html += `<div style="display:flex; justify-content:space-between; margin:0.5rem 0;"><span>${escapeHtml(chapters[i].title)}</span><span>${i + 1}</span></div>`;
+      html += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dotted #e0e0e0;"><span style="font-size:0.95rem;">${escapeHtml(chapters[i].title)}</span><span style="color:#999;">${i + 1}</span></div>`;
     }
   }
-  html += `</div><hr style="margin:2rem 0; border-color:#eee;" />`;
+  html += `</div></div>`;
 
+  // Chapters
   for (let i = 0; i < chapters.length; i++) {
     const chap = chapters[i];
     const nextIdx = i + 1 < chapters.length ? chapters[i + 1].index : text.length;
@@ -102,16 +122,19 @@ function formatManuscript(text: string, format: string) {
     for (const p of paragraphs) {
       const trimmed = p.trim();
       if (!trimmed) continue;
-      if (/^(?:Chapter|CHAPTER|Ch\.?)\s+/i.test(trimmed)) {
-        html += `<h2 id="ch-${i}" style="margin-top:60px; font-size:1.4rem;">${escapeHtml(trimmed)}</h2>`;
+      if (/^(?:Chapter|CHAPTER|Ch\.?)\s+/i.test(trimmed) || /^(Prologue|Foreword|Introduction|Conclusion|Epilogue)$/i.test(trimmed)) {
+        html += `<h2 id="ch-${i}" style="margin-top:50px; font-size:1.3rem; color:#1A2C3E; border-bottom:1px solid #eee; padding-bottom:8px;">${escapeHtml(trimmed)}</h2>`;
       } else {
-        html += `<p style="text-indent:1.5em; margin-bottom:1em; text-align:justify; line-height:1.7;">${escapeHtml(trimmed)}</p>`;
+        html += `<p style="text-indent:1.5em; margin-bottom:0.9em; text-align:justify; line-height:1.8; font-size:0.95rem; color:#333;">${escapeHtml(trimmed)}</p>`;
       }
     }
   }
 
-  html += `<div style="text-align:center; margin-top:80px; color:#999;"><p>© ${year} All rights reserved.</p><p>Published by AnyWay Formatter</p></div>`;
-  html += `</div>`;
+  // End matter
+  html += `<div style="text-align:center; margin-top:60px; padding-top:20px; border-top:1px solid #eee; color:#999; font-size:0.8rem;">`;
+  html += `<p>— END —</p>`;
+  html += `<p style="margin-top:8px;">© ${year} ${escapeHtml(author)}. All rights reserved.</p>`;
+  html += `</div></div>`;
   return html;
 }
 
@@ -122,53 +145,91 @@ export default function PdfEngine() {
   const [loadedFile, setLoadedFile] = useState<string | null>(null);
   const [alert, setAlert] = useState<{ msg: string; type: string } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [formatting, setFormatting] = useState(false);
   const docxRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
 
   const showAlertMsg = (msg: string, type = "info") => {
     setAlert({ msg, type });
-    setTimeout(() => setAlert(null), 3500);
+    setTimeout(() => setAlert(null), 4000);
   };
 
   const loadExample = (key: string) => {
     const ex = exampleBooks.find((b) => b.key === key);
     if (!ex) return;
-    setRawText(ex.content);
-    setLoadedFile(ex.title);
-    setFormattedHTML("");
-    setShowPreview(false);
-    showAlertMsg(`Loaded "${ex.title}" by ${ex.author}. Click "Format manuscript" to preview.`, "success");
+    setUploading(true);
+    setUploadProgress(0);
+    
+    // Simulate upload animation
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setUploading(false);
+          setRawText(ex.content);
+          setLoadedFile(ex.title);
+          setFormattedHTML("");
+          setShowPreview(false);
+          showAlertMsg(`Loaded "${ex.title}" by ${ex.author}. Click "Format manuscript" to preview.`, "success");
+          return 100;
+        }
+        return prev + 20;
+      });
+    }, 120);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploading(true);
+    setUploadProgress(0);
     setLoadedFile(`${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
-    showAlertMsg(`Loading ${file.name}...`, "info");
+
+    // Animate progress
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) { clearInterval(interval); return 90; }
+        return prev + 15;
+      });
+    }, 100);
 
     try {
       const text = await file.text();
-      setRawText(text);
-      setFormattedHTML("");
-      setShowPreview(false);
-      showAlertMsg("Successfully loaded. Ready to format.", "success");
+      clearInterval(interval);
+      setUploadProgress(100);
+      setTimeout(() => {
+        setUploading(false);
+        setRawText(text);
+        setFormattedHTML("");
+        setShowPreview(false);
+        showAlertMsg(`Successfully loaded ${file.name}. Ready to format.`, "success");
+      }, 500);
     } catch {
-      showAlertMsg(`Failed to read ${type.toUpperCase()}. Try a different file.`, "info");
+      clearInterval(interval);
+      setUploading(false);
+      setUploadProgress(0);
+      showAlertMsg(`Failed to read ${type.toUpperCase()}. Try a plain text or .txt file.`, "info");
     }
   };
 
   const processManuscript = () => {
     if (!rawText) {
-      showAlertMsg("Please upload a DOCX/PDF or load an example first.", "info");
+      showAlertMsg("Please upload a file or load an example first.", "info");
       return;
     }
-    const html = formatManuscript(rawText, selectedFormat);
-    setFormattedHTML(html);
-    setShowPreview(true);
-    showAlertMsg(
-      `Formatted as ${selectedFormat === "ebook" ? "eBook (with hyperlinks)" : "Paperback (no links)"}. Ready for preview.`,
-      "success"
-    );
+    setFormatting(true);
+    setTimeout(() => {
+      const html = formatManuscript(rawText, selectedFormat);
+      setFormattedHTML(html);
+      setShowPreview(true);
+      setFormatting(false);
+      showAlertMsg(
+        `Formatted as ${selectedFormat === "ebook" ? "eBook (with hyperlinks)" : "Paperback (print-ready gutters)"}. Scroll down to preview.`,
+        "success"
+      );
+    }, 600);
   };
 
   const downloadPDF = () => {
@@ -176,13 +237,33 @@ export default function PdfEngine() {
       showAlertMsg("Please format a manuscript first.", "info");
       return;
     }
+    const title = detectTitle(rawText);
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>KDP Formatted Manuscript</title>
-      <style>body{font-family:'Georgia',serif;margin:0;padding:40px;line-height:1.6;max-width:800px;margin:0 auto}
-      .kdp-content{width:100%}h1,h2{text-align:center}p{text-indent:1.5em;margin-bottom:1em}
-      @media print{body{margin:0;padding:0}h1,h2{page-break-after:avoid}}</style>
-      </head><body>${formattedHTML}<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),1500)}<\/script></body></html>`);
+    if (!printWindow) {
+      showAlertMsg("Pop-up blocked. Please allow pop-ups and try again.", "info");
+      return;
+    }
+    printWindow.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(title)} — KDP Formatted</title>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Georgia', serif; margin: 0; padding: 0; line-height: 1.6; color: #333; }
+        .kdp-content { max-width: 700px; margin: 0 auto; padding: 40px; }
+        h1 { text-align: center; font-size: 2rem; }
+        h2 { page-break-after: avoid; margin-top: 50px; }
+        p { text-indent: 1.5em; margin-bottom: 0.9em; text-align: justify; line-height: 1.8; }
+        @media print {
+          body { margin: 0; padding: 0; }
+          .kdp-content { padding: 0.75in 1in; max-width: none; }
+          h2 { page-break-after: avoid; }
+        }
+        @page { margin: 0.75in 1in; }
+      </style>
+    </head><body>${formattedHTML}
+    <script>
+      window.onload = function() { 
+        setTimeout(function() { window.print(); }, 500);
+      };
+    <\/script></body></html>`);
     printWindow.document.close();
   };
 
@@ -190,7 +271,7 @@ export default function PdfEngine() {
     <div>
       {/* Alert */}
       {alert && (
-        <div className={`flex items-center gap-3 px-5 py-3 rounded-xl mb-5 text-sm font-medium ${
+        <div className={`flex items-center gap-3 px-5 py-3 rounded-xl mb-5 text-sm font-medium animate-fade-up ${
           alert.type === "success"
             ? "bg-emerald/10 border-l-[3px] border-l-emerald text-emerald"
             : "bg-primary/[0.08] border-l-[3px] border-l-primary text-primary"
@@ -201,33 +282,50 @@ export default function PdfEngine() {
       )}
 
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-extrabold text-foreground tracking-tight">AnyWay Formatter — KDP Manuscript Studio</h2>
-        <p className="text-sm text-muted mt-2 leading-relaxed max-w-2xl">
-          Upload DOCX or PDF, choose eBook (with hyperlinks) or Paperback (print-ready), and get a perfectly formatted, rejection-proof file. All processing stays in your browser.
+      <div className="mb-6">
+        <h2 className="text-xl font-extrabold text-foreground tracking-tight">AnyWay Formatter — KDP Manuscript Studio</h2>
+        <p className="text-sm text-muted mt-1.5 leading-relaxed max-w-2xl">
+          Upload DOCX/PDF or load an example, choose eBook or Paperback format, and get a KDP-compliant manuscript. All processing stays in your browser.
         </p>
       </div>
 
-      {/* Example Books */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm font-bold text-muted mb-4">
-          <BookOpen size={15} className="text-primary" />
-          Completed examples — load &amp; format instantly
+      {/* Upload Animation Overlay */}
+      {uploading && (
+        <div className="bg-card border border-primary/20 rounded-2xl p-6 mb-6 animate-fade-up">
+          <div className="flex items-center gap-3 mb-3">
+            <Loader2 size={18} className="text-primary animate-spin" />
+            <span className="text-sm font-semibold text-foreground">Processing file...</span>
+          </div>
+          <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-cyan-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          <div className="text-xs text-muted mt-2">{uploadProgress}% complete</div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      )}
+
+      {/* Example Books */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 text-xs font-bold text-muted mb-3">
+          <BookOpen size={14} className="text-primary" />
+          Load an example — format instantly
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {exampleBooks.map((book) => (
             <div
               key={book.key}
-              onClick={() => loadExample(book.key)}
-              className="bg-card border border-[rgba(255,255,255,0.06)] rounded-2xl p-5 cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5"
+              onClick={() => !uploading && loadExample(book.key)}
+              className={`bg-card border border-[rgba(255,255,255,0.06)] rounded-xl p-4 cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5 ${uploading ? "opacity-50 pointer-events-none" : ""}`}
             >
-              <div className="font-bold text-base text-foreground mb-1">{book.title}</div>
-              <div className="text-xs text-muted mb-3">{book.author}</div>
-              <div className="flex items-center gap-3 text-xs text-muted mb-4">
+              <div className="font-bold text-sm text-foreground mb-1">{book.title}</div>
+              <div className="text-xs text-muted mb-2">{book.author}</div>
+              <div className="flex items-center gap-2 text-xs text-muted mb-3">
                 <span>{book.genre}</span>
                 <span>{book.rating}</span>
               </div>
-              <button className="bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-lg text-xs font-bold transition-all hover:bg-primary hover:text-primary-foreground w-full">
+              <button className="bg-primary/10 border border-primary/20 text-primary px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-primary hover:text-primary-foreground w-full">
                 Load this book →
               </button>
             </div>
@@ -236,114 +334,110 @@ export default function PdfEngine() {
       </div>
 
       {/* Upload Area */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div
-          onClick={() => docxRef.current?.click()}
-          className="bg-card border border-[rgba(255,255,255,0.06)] rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5"
+          onClick={() => !uploading && docxRef.current?.click()}
+          className={`bg-card border border-[rgba(255,255,255,0.06)] rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5 group ${uploading ? "opacity-50 pointer-events-none" : ""}`}
         >
-          <FileText size={40} className="text-primary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Upload DOCX</h3>
-          <p className="text-sm text-muted mb-5">Microsoft Word document — best for text extraction</p>
-          <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg text-xs font-bold">Choose file</span>
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
+            <Upload size={24} className="text-primary" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">Upload DOCX / TXT</h3>
+          <p className="text-xs text-muted mb-3">Word document or plain text file</p>
+          <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-lg text-xs font-bold inline-block">Choose file</span>
           <input ref={docxRef} type="file" accept=".docx,.doc,.txt" className="hidden" onChange={(e) => handleFileUpload(e, "docx")} />
         </div>
         <div
-          onClick={() => pdfRef.current?.click()}
-          className="bg-card border border-[rgba(255,255,255,0.06)] rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5"
+          onClick={() => !uploading && pdfRef.current?.click()}
+          className={`bg-card border border-[rgba(255,255,255,0.06)] rounded-xl p-6 text-center cursor-pointer transition-all hover:border-primary/30 hover:-translate-y-0.5 group ${uploading ? "opacity-50 pointer-events-none" : ""}`}
         >
-          <FileText size={40} className="text-primary mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Upload PDF</h3>
-          <p className="text-sm text-muted mb-5">Existing PDF — will be reformatted to KDP standard</p>
-          <span className="bg-primary/10 text-primary px-4 py-2 rounded-lg text-xs font-bold">Choose file</span>
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 group-hover:bg-primary/20 transition-colors">
+            <FileText size={24} className="text-primary" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">Upload PDF</h3>
+          <p className="text-xs text-muted mb-3">Reformat to KDP standard</p>
+          <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-lg text-xs font-bold inline-block">Choose file</span>
           <input ref={pdfRef} type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, "pdf")} />
         </div>
       </div>
 
       {/* Loaded File Info */}
-      {loadedFile && (
-        <div className="flex items-center gap-2 bg-emerald/10 text-emerald px-4 py-2.5 rounded-xl text-sm font-semibold mb-6">
+      {loadedFile && !uploading && (
+        <div className="flex items-center gap-2 bg-emerald/10 text-emerald px-4 py-2.5 rounded-xl text-sm font-semibold mb-5 animate-fade-up">
           <CheckCircle size={15} /> {loadedFile}
         </div>
       )}
 
       {/* Format Options */}
-      <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-2xl p-6 mb-8">
-        <div className="text-sm font-bold text-foreground mb-4">Output format</div>
-        <div className="flex gap-4 flex-wrap">
-          <label
-            onClick={() => setSelectedFormat("ebook")}
-            className={`flex items-center gap-3 px-5 py-3 rounded-xl border cursor-pointer transition-all ${
-              selectedFormat === "ebook"
-                ? "border-primary bg-primary/[0.08]"
-                : "border-[rgba(255,255,255,0.06)] hover:border-primary/20"
-            }`}
-          >
-            <input type="radio" name="format" value="ebook" checked={selectedFormat === "ebook"} onChange={() => setSelectedFormat("ebook")} className="accent-[hsl(186,100%,50%)] w-4 h-4" />
-            <div>
-              <div className="font-semibold text-sm text-foreground">eBook (Kindle)</div>
-              <div className="text-[0.7rem] text-muted">Active hyperlinks in TOC</div>
-            </div>
-          </label>
-          <label
-            onClick={() => setSelectedFormat("paperback")}
-            className={`flex items-center gap-3 px-5 py-3 rounded-xl border cursor-pointer transition-all ${
-              selectedFormat === "paperback"
-                ? "border-primary bg-primary/[0.08]"
-                : "border-[rgba(255,255,255,0.06)] hover:border-primary/20"
-            }`}
-          >
-            <input type="radio" name="format" value="paperback" checked={selectedFormat === "paperback"} onChange={() => setSelectedFormat("paperback")} className="accent-[hsl(186,100%,50%)] w-4 h-4" />
-            <div>
-              <div className="font-semibold text-sm text-foreground">Paperback / Hardcover</div>
-              <div className="text-[0.7rem] text-muted">No hyperlinks, proper gutters</div>
-            </div>
-          </label>
+      <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-xl p-5 mb-6">
+        <div className="text-xs font-bold text-foreground mb-3">Output format</div>
+        <div className="flex gap-3 flex-wrap">
+          {[
+            { val: "ebook", label: "eBook (Kindle)", sub: "Active hyperlinks in TOC" },
+            { val: "paperback", label: "Paperback / Hardcover", sub: "No hyperlinks, proper gutters" },
+          ].map((opt) => (
+            <label
+              key={opt.val}
+              onClick={() => setSelectedFormat(opt.val)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
+                selectedFormat === opt.val
+                  ? "border-primary bg-primary/[0.08]"
+                  : "border-[rgba(255,255,255,0.06)] hover:border-primary/20"
+              }`}
+            >
+              <input type="radio" name="format" value={opt.val} checked={selectedFormat === opt.val} onChange={() => setSelectedFormat(opt.val)} className="accent-[hsl(186,100%,50%)] w-4 h-4" />
+              <div>
+                <div className="font-semibold text-sm text-foreground">{opt.label}</div>
+                <div className="text-[0.65rem] text-muted">{opt.sub}</div>
+              </div>
+            </label>
+          ))}
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex gap-3 mb-6">
         <button
           onClick={processManuscript}
-          className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-extrabold text-sm transition-all hover:brightness-110 hover:shadow-[0_8px_24px_rgba(0,229,255,0.3)] hover:-translate-y-0.5 flex items-center gap-2"
+          disabled={formatting}
+          className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-extrabold text-sm transition-all hover:brightness-110 hover:shadow-[0_8px_24px_rgba(0,229,255,0.3)] hover:-translate-y-0.5 flex items-center gap-2 disabled:opacity-60"
         >
-          <Sparkles size={16} /> Format manuscript
+          {formatting ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {formatting ? "Formatting..." : "Format manuscript"}
         </button>
         {showPreview && (
           <button
             onClick={downloadPDF}
             className="bg-transparent border border-[rgba(255,255,255,0.06)] text-muted px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:text-foreground hover:border-[rgba(255,255,255,0.15)] flex items-center gap-2"
           >
-            <Download size={16} /> Download PDF (print ready)
+            <Download size={16} /> Download PDF
           </button>
         )}
       </div>
 
       {/* Preview */}
       {showPreview && formattedHTML && (
-        <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-2xl overflow-hidden">
-          <div className="flex justify-between items-center px-6 py-4 border-b border-[rgba(255,255,255,0.06)]" style={{ background: "hsl(222 50% 6%)" }}>
-            <div className="flex items-center gap-2 font-semibold text-foreground">
-              <Eye size={16} /> Live preview — KDP style
+        <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-xl overflow-hidden animate-fade-up">
+          <div className="flex justify-between items-center px-5 py-3 border-b border-[rgba(255,255,255,0.06)]" style={{ background: "hsl(222 50% 6%)" }}>
+            <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
+              <Eye size={15} /> Live preview — KDP style
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  setSelectedFormat("ebook");
-                  setFormattedHTML(formatManuscript(rawText, "ebook"));
-                }}
-                className="bg-transparent border border-[rgba(255,255,255,0.06)] text-muted px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:text-foreground hover:border-[rgba(255,255,255,0.15)] flex items-center gap-1"
+                onClick={() => { setSelectedFormat("ebook"); setFormattedHTML(formatManuscript(rawText, "ebook")); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                  selectedFormat === "ebook" ? "bg-primary/10 text-primary border border-primary/30" : "bg-transparent border border-[rgba(255,255,255,0.06)] text-muted hover:text-foreground"
+                }`}
               >
-                <Book size={12} /> eBook view
+                <Book size={12} /> eBook
               </button>
               <button
-                onClick={() => {
-                  setSelectedFormat("paperback");
-                  setFormattedHTML(formatManuscript(rawText, "paperback"));
-                }}
-                className="bg-transparent border border-[rgba(255,255,255,0.06)] text-muted px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:text-foreground hover:border-[rgba(255,255,255,0.15)] flex items-center gap-1"
+                onClick={() => { setSelectedFormat("paperback"); setFormattedHTML(formatManuscript(rawText, "paperback")); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+                  selectedFormat === "paperback" ? "bg-primary/10 text-primary border border-primary/30" : "bg-transparent border border-[rgba(255,255,255,0.06)] text-muted hover:text-foreground"
+                }`}
               >
-                <BookOpen size={12} /> Paperback view
+                <BookOpen size={12} /> Paperback
               </button>
             </div>
           </div>
@@ -355,8 +449,8 @@ export default function PdfEngine() {
         </div>
       )}
 
-      {/* Footer Note */}
-      <div className="text-center mt-12 pt-6 border-t border-[rgba(255,255,255,0.06)] text-[0.7rem] text-muted flex items-center justify-center gap-2">
+      {/* Footer */}
+      <div className="text-center mt-10 pt-5 border-t border-[rgba(255,255,255,0.06)] text-[0.7rem] text-muted flex items-center justify-center gap-2">
         <ShieldCheck size={13} /> All processing happens in your browser. No files are uploaded — your data stays private.
       </div>
     </div>

@@ -14,6 +14,7 @@ import {
 import AgentTab from "./AgentTab";
 import LandingPageBuilder from "./LandingPageBuilder";
 import PdfEngine from "./PdfEngine";
+import LeadsTab from "./LeadsTab";
 
 interface DashboardProps {
   onLogout: () => void;
@@ -148,7 +149,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
           {activeTab === "agent" && <AgentTab />}
           {activeTab === "pages" && <LandingPageBuilder />}
           {activeTab === "pdf" && <PdfEngine />}
-          {!["dashboard", "agent", "pages", "pdf"].includes(activeTab) && (
+          {activeTab === "leads" && <LeadsTab />}
+          {!["dashboard", "agent", "pages", "pdf", "leads"].includes(activeTab) && (
             <PlaceholderTab
               icon={allItems.find((n) => n.id === activeTab)?.icon || LayoutDashboard}
               title={allItems.find((n) => n.id === activeTab)?.label || ""}
