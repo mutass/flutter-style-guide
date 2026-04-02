@@ -14,6 +14,7 @@ import {
 import AgentTab from "./AgentTab";
 import LandingPageBuilder from "./LandingPageBuilder";
 import PdfEngine from "./PdfEngine";
+import LeadsTab from "./LeadsTab";
 
 interface DashboardProps {
   onLogout: () => void;
