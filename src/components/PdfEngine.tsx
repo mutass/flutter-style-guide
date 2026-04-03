@@ -187,7 +187,6 @@ export default function PdfEngine() {
     setUploadProgress(0);
     setLoadedFile(`${file.name} (${(file.size / 1024).toFixed(0)} KB)`);
 
-    // Animate progress
     const interval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 90) { clearInterval(interval); return 90; }
@@ -196,7 +195,74 @@ export default function PdfEngine() {
     }, 100);
 
     try {
-      const text = await file.text();
+      let text = "";
+      const fileName = file.name.toLowerCase();
+
+      if (fileName.endsWith(".txt") || fileName.endsWith(".md")) {
+        text = await file.text();
+      } else if (fileName.endsWith(".pdf") || fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
+        // Binary files can't be read as plain text — extract readable content
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+
+        if (fileName.endsWith(".pdf")) {
+          // Extract text between stream markers in PDF
+          const rawStr = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+          // Pull readable text: lines that have mostly printable characters
+          const lines = rawStr.split(/\r?\n/);
+          const readable: string[] = [];
+          for (const line of lines) {
+            const cleaned = line.replace(/[^\x20-\x7E]/g, "").trim();
+            if (cleaned.length > 10 && /[a-zA-Z]{3,}/.test(cleaned)) {
+              // Remove PDF operators like BT, ET, Tf, Td, Tj etc
+              const stripped = cleaned
+                .replace(/\b(BT|ET|Tf|Td|Tj|TJ|Tm|cm|re|f|W|n|q|Q|Do|gs|CS|cs|sc|SC|rg|RG)\b/g, "")
+                .replace(/[\[\]()]/g, "")
+                .replace(/\s{2,}/g, " ")
+                .trim();
+              if (stripped.length > 5 && /[a-zA-Z]{3,}/.test(stripped)) {
+                readable.push(stripped);
+              }
+            }
+          }
+          text = readable.join("\n\n");
+          if (text.length < 50) {
+            clearInterval(interval);
+            setUploading(false);
+            setUploadProgress(0);
+            showAlertMsg("This PDF contains mostly images or encoded text. Please copy-paste your text content directly, or use a .txt file.", "info");
+            return;
+          }
+        } else {
+          // DOCX: extract text from XML content inside the zip
+          const rawStr = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+          // Extract text between <w:t> tags (Word XML)
+          const matches = rawStr.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
+          if (matches && matches.length > 0) {
+            text = matches.map(m => m.replace(/<[^>]+>/g, "")).join(" ");
+            // Try to restore paragraph breaks
+            text = text.replace(/\s{3,}/g, "\n\n");
+          } else {
+            // Fallback: extract any readable text
+            const lines = rawStr.split(/\r?\n/);
+            const readable = lines
+              .map(l => l.replace(/[^\x20-\x7E]/g, "").trim())
+              .filter(l => l.length > 10 && /[a-zA-Z]{3,}/.test(l));
+            text = readable.join("\n\n");
+          }
+          if (text.length < 50) {
+            clearInterval(interval);
+            setUploading(false);
+            setUploadProgress(0);
+            showAlertMsg("Could not extract text from this DOCX. Please copy-paste your text content directly, or save as .txt first.", "info");
+            return;
+          }
+        }
+      } else {
+        // Try reading as plain text
+        text = await file.text();
+      }
+
       clearInterval(interval);
       setUploadProgress(100);
       setTimeout(() => {
