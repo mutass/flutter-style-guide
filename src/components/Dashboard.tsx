@@ -15,6 +15,7 @@ import AgentTab from "./AgentTab";
 import LandingPageBuilder from "./LandingPageBuilder";
 import PdfEngine from "./PdfEngine";
 import LeadsTab from "./LeadsTab";
+import EmailCallsTab from "./EmailCallsTab";
 
 interface DashboardProps {
   onLogout: () => void;
