@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import AgentTab from "./AgentTab";
 import LandingPageBuilder from "./LandingPageBuilder";
-import PdfEngine from "./PdfEngine";
+import PdfEngine from "./pdf-engine/PdfEngine";
 import LeadsTab from "./LeadsTab";
 import EmailCallsTab from "./EmailCallsTab";
 
