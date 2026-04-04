@@ -10,12 +10,28 @@ import {
   LogOut,
   TrendingUp,
   Lock,
+  DollarSign,
+  Image,
+  Sparkles,
+  Search,
+  FolderTree,
+  LineChart,
+  CheckSquare,
+  Ruler,
 } from "lucide-react";
 import AgentTab from "./AgentTab";
 import LandingPageBuilder from "./LandingPageBuilder";
 import PdfEngine from "./pdf-engine/PdfEngine";
 import LeadsTab from "./LeadsTab";
 import EmailCallsTab from "./EmailCallsTab";
+import RoyaltyCalculator from "./royalty-calculator/RoyaltyCalculator";
+import CoverChecker from "./cover-checker/CoverChecker";
+import BlurbWriter from "./blurb-writer/BlurbWriter";
+import KeywordFinder from "./keyword-finder/KeywordFinder";
+import CategoryFinder from "./category-finder/CategoryFinder";
+import PriceTracker from "./price-tracker/PriceTracker";
+import UploadChecklist from "./upload-checklist/UploadChecklist";
+import SpineCalculator from "./spine-calculator/SpineCalculator";
 
 interface DashboardProps {
   onLogout: () => void;
@@ -33,6 +49,7 @@ const navSections = [
     items: [
       { id: "pages", icon: Globe, label: "Landing Pages" },
       { id: "pdf", icon: FileText, label: "AnyWay Formatter" },
+      { id: "cover", icon: Image, label: "Cover Checker" },
     ],
   },
   {
@@ -40,6 +57,23 @@ const navSections = [
     items: [
       { id: "leads", icon: Users, label: "Leads" },
       { id: "email", icon: Mail, label: "Email & Calls" },
+    ],
+  },
+  {
+    label: "AI Tools",
+    items: [
+      { id: "blurb", icon: Sparkles, label: "Blurb Writer" },
+      { id: "keywords", icon: Search, label: "Keyword Finder" },
+      { id: "categories", icon: FolderTree, label: "Category Finder" },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { id: "royalty", icon: DollarSign, label: "Royalty Calculator" },
+      { id: "tracker", icon: LineChart, label: "Price Tracker" },
+      { id: "spine", icon: Ruler, label: "Spine Calculator" },
+      { id: "checklist", icon: CheckSquare, label: "Upload Checklist" },
     ],
   },
   {
@@ -78,19 +112,45 @@ const pageTitles: Record<string, [string, string]> = {
   dashboard: ["Author Dashboard", "248 active leads · 12 manuscripts"],
   pages: ["Landing Page Builder", "Create beautiful sales pages for your books"],
   pdf: ["AnyWay Formatter", "KDP-compliant manuscript formatting — no data stored"],
+  cover: ["Cover Checker", "Validate your book cover against KDP print requirements"],
   leads: ["Leads Center", "Full lead management — import, filter, score, and contact all your readers"],
   email: ["CRM & Communication", "Manage email sequences and call lists for your lead pipeline"],
   agent: ["AI Call Agent", "Automated voice outreach system"],
+  blurb: ["AI Blurb Writer", "Generate compelling book descriptions for Amazon"],
+  keywords: ["Keyword Finder", "Discover the best 7 KDP backend keywords"],
+  categories: ["Category Finder", "Find the best Amazon browse categories for your book"],
+  royalty: ["Royalty Calculator", "Calculate your earnings across formats and marketplaces"],
+  tracker: ["Price Tracker", "Track price changes and BSR correlation over time"],
+  spine: ["Spine Calculator", "Calculate exact spine width for your cover design"],
+  checklist: ["Upload Checklist", "Pre-submission checklist for KDP uploads"],
+};
+
+const TAB_COMPONENTS: Record<string, React.ComponentType> = {
+  agent: AgentTab,
+  pages: LandingPageBuilder,
+  pdf: PdfEngine,
+  leads: LeadsTab,
+  email: EmailCallsTab,
+  royalty: RoyaltyCalculator,
+  cover: CoverChecker,
+  blurb: BlurbWriter,
+  keywords: KeywordFinder,
+  categories: CategoryFinder,
+  tracker: PriceTracker,
+  checklist: UploadChecklist,
+  spine: SpineCalculator,
 };
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [title, sub] = pageTitles[activeTab] || ["Dashboard", ""];
 
+  const TabComponent = TAB_COMPONENTS[activeTab];
+
   return (
     <div className="h-screen w-full flex bg-background">
       {/* Sidebar */}
-      <aside className="w-[248px] flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] flex flex-col p-6 px-3.5" style={{ background: "hsl(222 50% 6%)" }}>
+      <aside className="w-[248px] flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] flex flex-col p-6 px-3.5 overflow-y-auto custom-scrollbar" style={{ background: "hsl(222 50% 6%)" }}>
         <div className="font-black text-base tracking-tight px-2.5 mb-8">
           <span className="text-primary">KDP</span> <span className="text-foreground">UNLOCKED</span>
         </div>
@@ -145,20 +205,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         </div>
 
         {/* Content */}
-        <div className={`flex-1 overflow-y-auto ${activeTab === "pages" ? "" : "p-8"} custom-scrollbar`}>
+        <div className={`flex-1 overflow-y-auto ${activeTab === "pages" || activeTab === "pdf" ? "" : "p-8"} custom-scrollbar`}>
           {activeTab === "dashboard" && <DashboardContent />}
-          {activeTab === "agent" && <AgentTab />}
-          {activeTab === "pages" && <LandingPageBuilder />}
-          {activeTab === "pdf" && <PdfEngine />}
-          {activeTab === "leads" && <LeadsTab />}
-          {activeTab === "email" && <EmailCallsTab />}
-          {!["dashboard", "agent", "pages", "pdf", "leads", "email"].includes(activeTab) && (
-            <PlaceholderTab
-              icon={allItems.find((n) => n.id === activeTab)?.icon || LayoutDashboard}
-              title={allItems.find((n) => n.id === activeTab)?.label || ""}
-              desc={getTabDesc(activeTab)}
-            />
-          )}
+          {TabComponent && <TabComponent />}
         </div>
       </main>
     </div>
@@ -225,24 +274,6 @@ function DashboardContent() {
       </div>
     </>
   );
-}
-
-function PlaceholderTab({ icon: Icon, title, desc }: { icon: React.ElementType; title: string; desc: string }) {
-  return (
-    <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-[15px] p-14 text-center">
-      <Icon size={40} className="text-primary opacity-45 mx-auto mb-3" />
-      <div className="font-bold text-lg text-foreground mb-2">{title}</div>
-      <div className="text-sm text-muted">{desc}</div>
-    </div>
-  );
-}
-
-function getTabDesc(id: string) {
-  const map: Record<string, string> = {
-    leads: "Full lead management — import, filter, score, and contact all your readers.",
-    email: "Manage email sequences and call lists for your entire lead pipeline.",
-  };
-  return map[id] || "";
 }
 
 export default Dashboard;
