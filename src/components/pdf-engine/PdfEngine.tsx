@@ -17,7 +17,6 @@ import {
 import mammoth from "mammoth";
 import { jsPDF } from "jspdf";
 
-// ── Constants ──────────────────────────────────────────────
 const HEADING_RE = /^(chapter|part|prologue|epilogue|introduction|foreword|preface|conclusion|appendix)\s*[\d\w:—\-]*/i;
 const ALLCAPS_RE = /^[A-Z][A-Z\s\d:—\-]{3,59}$/;
 
@@ -88,7 +87,6 @@ EPILOGUE
 
 The path of self-publishing is not always easy, but it is incredibly rewarding. You have the power to share your stories with the world, build a sustainable income, and create a legacy that outlasts you. The only question is: are you ready to begin?`;
 
-// ── Helpers ──────────────────────────────────────────────
 interface Chapter {
   title: string;
   body: string;
@@ -142,7 +140,6 @@ function wrapText(doc: jsPDF, text: string, maxWidth: number): string[] {
   return doc.splitTextToSize(text, maxWidth) as string[];
 }
 
-// ── Component ────────────────────────────────────────────
 const PdfEngine = () => {
   const [mode, setMode] = useState<"ebook" | "paperback">("ebook");
   const [manuscript, setManuscript] = useState("");
@@ -152,6 +149,10 @@ const PdfEngine = () => {
   const [previewPages, setPreviewPages] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+
+  // BUG 1 FIX: separate user-typed title & author fields
+  const [bookTitleInput, setBookTitleInput] = useState("");
+  const [authorInput, setAuthorInput] = useState("");
 
   // eBook settings
   const [ebookPageSize, setEbookPageSize] = useState("6x9");
@@ -167,10 +168,13 @@ const PdfEngine = () => {
   const [pbOddChapters, setPbOddChapters] = useState(true);
 
   const chapters = useMemo(() => detectChapters(manuscript), [manuscript]);
-  const { bookTitle, author } = useMemo(() => extractTitleAuthor(manuscript), [manuscript]);
+  const extracted = useMemo(() => extractTitleAuthor(manuscript), [manuscript]);
   const wc = useMemo(() => wordCount(manuscript), [manuscript]);
 
-  // ── File handling ──
+  // BUG 1 FIX: always use user input, fallback to "Untitled Book" — never chapter heading
+  const effectiveTitle = bookTitleInput.trim() || "Untitled Book";
+  const effectiveAuthor = authorInput.trim() || extracted.author;
+
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".docx")) {
       toast.error("Please upload a .docx file");
@@ -180,11 +184,15 @@ const PdfEngine = () => {
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.extractRawText({ arrayBuffer });
       setManuscript(result.value);
+      // Auto-fill title/author from manuscript if fields are empty
+      const ext = extractTitleAuthor(result.value);
+      if (!bookTitleInput.trim()) setBookTitleInput(ext.bookTitle);
+      if (!authorInput.trim()) setAuthorInput(ext.author);
       toast.success(`Loaded ${file.name} — ${wordCount(result.value).toLocaleString()} words`);
     } catch {
       toast.error("Failed to read .docx file");
     }
-  }, []);
+  }, [bookTitleInput, authorInput]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -198,7 +206,6 @@ const PdfEngine = () => {
     if (file) handleFile(file);
   }, [handleFile]);
 
-  // ── Margin specs ──
   const getMarginSpecs = () => {
     if (mode === "ebook") {
       return { top: 36, bottom: 36, left: 36, right: 36, label: "0.5in all sides" };
@@ -212,7 +219,6 @@ const PdfEngine = () => {
     };
   };
 
-  // ── Preview Structure ──
   const handlePreview = () => {
     if (!manuscript.trim()) { toast.error("No manuscript text"); return; }
     if (chapters.length === 0) { toast.error("No chapters detected"); return; }
@@ -246,19 +252,21 @@ const PdfEngine = () => {
   const generateEbook = () => {
     const [pageW, pageH] = PAGE_SIZES[ebookPageSize] || PAGE_SIZES["6x9"];
     const fontSize = parseInt(ebookFontSize);
+    const headingFontSize = 20;
     const margin = 36;
     const contentW = pageW - margin * 2;
     const lineHeight = fontSize * 1.5;
+    const headingLineHeight = headingFontSize * 1.4;
 
     const doc = new jsPDF({ unit: "pt", format: [pageW, pageH] });
 
-    // ── Title page ──
+    // ── Title page — BUG 1 FIX: use effectiveTitle, never chapter heading ──
     doc.setFillColor(20, 20, 35);
     doc.rect(0, 0, pageW, pageH, "F");
     doc.setTextColor(0, 229, 255);
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    const titleLines = wrapText(doc, bookTitle, contentW);
+    const titleLines = wrapText(doc, effectiveTitle, contentW);
     let ty = pageH / 2 - titleLines.length * 18;
     titleLines.forEach((line) => {
       doc.text(line, pageW / 2, ty, { align: "center" });
@@ -267,19 +275,19 @@ const PdfEngine = () => {
     doc.setTextColor(180, 180, 180);
     doc.setFontSize(14);
     doc.setFont("helvetica", "normal");
-    doc.text(author, pageW / 2, ty + 20, { align: "center" });
+    doc.text(effectiveAuthor, pageW / 2, ty + 20, { align: "center" });
 
     // ── Copyright page ──
     doc.addPage([pageW, pageH]);
     doc.setTextColor(120, 120, 120);
     doc.setFontSize(9);
     const copyrightLines = [
-      `© ${new Date().getFullYear()} ${author}. All rights reserved.`,
+      `© ${new Date().getFullYear()} ${effectiveAuthor}. All rights reserved.`,
       "",
       "No part of this publication may be reproduced, distributed, or transmitted",
       "in any form or by any means without the prior written permission of the author.",
       "",
-      `Published via KDP Unlocked Formatter`,
+      "Published via KDP Unlocked Formatter",
     ];
     let cy = pageH / 2 - 40;
     copyrightLines.forEach((l) => {
@@ -300,16 +308,24 @@ const PdfEngine = () => {
 
       let y = margin + 30;
 
-      // Chapter heading
+      // BUG 2 FIX: wrap chapter heading with splitTextToSize
       if (ebookColorHeadings) {
         doc.setTextColor(0, 229, 255);
       } else {
         doc.setTextColor(30, 30, 30);
       }
-      doc.setFontSize(20);
+      doc.setFontSize(headingFontSize);
       doc.setFont("helvetica", "bold");
-      doc.text(ch.title, margin, y);
-      y += 36;
+      const headingLines = doc.splitTextToSize(ch.title, contentW) as string[];
+      for (const hl of headingLines) {
+        doc.text(hl, margin, y);
+        y += headingLineHeight;
+      }
+      // horizontal rule under heading
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, margin + contentW, y);
+      y += 12;
 
       // Body text
       doc.setTextColor(30, 30, 30);
@@ -322,7 +338,6 @@ const PdfEngine = () => {
         for (const line of lines) {
           if (y + lineHeight > pageH - margin) {
             doc.addPage([pageW, pageH]);
-            // Page number
             doc.setFontSize(9);
             doc.setTextColor(120, 120, 120);
             doc.text(String(doc.getNumberOfPages()), pageW / 2, pageH - 20, { align: "center" });
@@ -333,7 +348,8 @@ const PdfEngine = () => {
           doc.text(line, margin, y);
           y += lineHeight;
         }
-        y += lineHeight * 0.5;
+        // BUG 3 FIX: extra paragraph gap
+        y += lineHeight * 0.6;
       }
 
       // Page number at bottom
@@ -380,7 +396,7 @@ const PdfEngine = () => {
     });
 
     const totalPages = doc.getNumberOfPages();
-    const filename = `${bookTitle.replace(/\s+/g, "_").toLowerCase()}_ebook_kdp.pdf`;
+    const filename = `${effectiveTitle.replace(/\s+/g, "_").toLowerCase()}_ebook_kdp.pdf`;
     doc.save(filename);
     toast.success(`PDF saved — ${chapters.length} chapters, ${totalPages} pages`);
   };
@@ -389,11 +405,13 @@ const PdfEngine = () => {
   const generatePaperback = () => {
     const [pageW, pageH] = PAGE_SIZES[pbTrimSize] || PAGE_SIZES["6x9"];
     const fontSize = parseInt(pbFontSize);
+    const headingFontSize = 20;
     const gutter = GUTTER_MAP[pbPageCount] || 54;
     const outerMargin = 36;
     const topMargin = 54;
     const bottomMargin = 54;
     const lineHeight = fontSize * 1.5;
+    const headingLineHeight = headingFontSize * 1.4;
     const headerHeight = pbRunningHeaders ? 24 : 0;
 
     const getMargins = (pageNum: number) => {
@@ -425,7 +443,7 @@ const PdfEngine = () => {
       doc.setTextColor(130, 130, 130);
       doc.setFont("helvetica", "italic");
       if (pageNum % 2 === 0) {
-        doc.text(bookTitle, m.left, topMargin - 10);
+        doc.text(effectiveTitle, m.left, topMargin - 10);
       } else {
         doc.text(chapterTitle, pageW - m.right, topMargin - 10, { align: "right" });
       }
@@ -436,14 +454,14 @@ const PdfEngine = () => {
 
     let currentPage = 1;
 
-    // ── Page 1: Title (recto) ──
+    // ── Page 1: Title (recto) — BUG 1 FIX ──
     doc.setFillColor(20, 20, 35);
     doc.rect(0, 0, pageW, pageH, "F");
     doc.setTextColor(0, 229, 255);
     doc.setFontSize(26);
     doc.setFont("helvetica", "bold");
     const contentW = pageW - gutter - outerMargin;
-    const titleLines = wrapText(doc, bookTitle, contentW);
+    const titleLines = wrapText(doc, effectiveTitle, contentW);
     let ty2 = pageH / 2 - titleLines.length * 18;
     titleLines.forEach((line) => {
       doc.text(line, pageW / 2, ty2, { align: "center" });
@@ -452,7 +470,7 @@ const PdfEngine = () => {
     doc.setTextColor(180, 180, 180);
     doc.setFontSize(13);
     doc.setFont("helvetica", "normal");
-    doc.text(author, pageW / 2, ty2 + 20, { align: "center" });
+    doc.text(effectiveAuthor, pageW / 2, ty2 + 20, { align: "center" });
     currentPage++;
 
     // ── Page 2: Blank (verso) ──
@@ -461,12 +479,11 @@ const PdfEngine = () => {
 
     // ── Page 3: Copyright (recto) ──
     doc.addPage([pageW, pageH]);
-    const m3 = getMargins(currentPage);
     doc.setTextColor(100, 100, 100);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     const copLines = [
-      `© ${new Date().getFullYear()} ${author}. All rights reserved.`,
+      `© ${new Date().getFullYear()} ${effectiveAuthor}. All rights reserved.`,
       "",
       "No part of this publication may be reproduced, distributed,",
       "or transmitted in any form without prior written permission.",
@@ -505,11 +522,19 @@ const PdfEngine = () => {
       const cw = pageW - m.left - m.right;
       let y = topMargin + headerHeight + 20;
 
+      // BUG 2 FIX: wrap chapter heading
       doc.setTextColor(30, 30, 30);
-      doc.setFontSize(20);
+      doc.setFontSize(headingFontSize);
       doc.setFont("helvetica", "bold");
-      doc.text(ch.title, m.left, y);
-      y += 36;
+      const headingLines = doc.splitTextToSize(ch.title, cw) as string[];
+      for (const hl of headingLines) {
+        doc.text(hl, m.left, y);
+        y += headingLineHeight;
+      }
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.5);
+      doc.line(m.left, y, m.left + cw, y);
+      y += 12;
 
       doc.setTextColor(30, 30, 30);
       doc.setFontSize(fontSize);
@@ -536,7 +561,8 @@ const PdfEngine = () => {
           doc.text(line, m.left, y);
           y += lineHeight;
         }
-        y += lineHeight * 0.4;
+        // BUG 3 FIX: extra paragraph gap
+        y += lineHeight * 0.6;
       }
 
       addPageNum(currentPage);
@@ -576,12 +602,11 @@ const PdfEngine = () => {
     addPageNum(tocPage);
 
     const totalPages = doc.getNumberOfPages();
-    const filename = `${bookTitle.replace(/\s+/g, "_").toLowerCase()}_paperback_kdp.pdf`;
+    const filename = `${effectiveTitle.replace(/\s+/g, "_").toLowerCase()}_paperback_kdp.pdf`;
     doc.save(filename);
     toast.success(`PDF saved — ${chapters.length} chapters, ${totalPages} pages`);
   };
 
-  // ── Generate handler ──
   const handleGenerate = async () => {
     if (!manuscript.trim()) { toast.error("Paste or upload a manuscript first"); return; }
     if (chapters.length === 0) { toast.error("No chapters detected — add chapter headings"); return; }
@@ -608,13 +633,34 @@ const PdfEngine = () => {
     <div className="flex h-full gap-0 overflow-hidden">
       {/* ── Left Panel ── */}
       <div className="w-[280px] flex-shrink-0 border-r border-border flex flex-col overflow-y-auto custom-scrollbar bg-card/50 p-4">
-        {/* Mode tabs */}
         <Tabs value={mode} onValueChange={(v) => setMode(v as "ebook" | "paperback")} className="mb-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="ebook" className="text-xs font-semibold">eBook PDF</TabsTrigger>
             <TabsTrigger value="paperback" className="text-xs font-semibold">Paperback PDF</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {/* BUG 1 FIX: Book Title & Author inputs */}
+        <div className="space-y-2 mb-4">
+          <div>
+            <Label className="text-xs mb-1 block">Book Title</Label>
+            <Input
+              value={bookTitleInput}
+              onChange={(e) => setBookTitleInput(e.target.value)}
+              placeholder="Untitled Book"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs mb-1 block">Author</Label>
+            <Input
+              value={authorInput}
+              onChange={(e) => setAuthorInput(e.target.value)}
+              placeholder="Unknown Author"
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
 
         {/* Stats */}
         <div className="flex gap-2 mb-4">
@@ -744,7 +790,6 @@ const PdfEngine = () => {
           )}
         </Card>
 
-        {/* Progress */}
         {generating && (
           <div className="mb-3">
             <Progress value={progress} className="h-2" />
@@ -752,7 +797,6 @@ const PdfEngine = () => {
           </div>
         )}
 
-        {/* Actions */}
         <div className="space-y-2 mt-auto">
           <Button onClick={handleGenerate} disabled={generating} className="w-full font-semibold text-xs">
             {generating ? <Loader2 className="animate-spin mr-1.5" size={14} /> : <Download size={14} className="mr-1.5" />}
@@ -761,7 +805,7 @@ const PdfEngine = () => {
           <Button variant="outline" onClick={handlePreview} className="w-full text-xs">
             <Eye size={14} className="mr-1.5" /> Preview Structure
           </Button>
-          <Button variant="ghost" onClick={() => setManuscript(SAMPLE_BOOK)} className="w-full text-xs">
+          <Button variant="ghost" onClick={() => { setManuscript(SAMPLE_BOOK); setBookTitleInput("The Art of Self-Publishing"); setAuthorInput("Jane Doe"); }} className="w-full text-xs">
             <BookOpen size={14} className="mr-1.5" /> Load Sample Book
           </Button>
         </div>
@@ -769,7 +813,6 @@ const PdfEngine = () => {
 
       {/* ── Right Panel ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Drop zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
@@ -787,7 +830,6 @@ const PdfEngine = () => {
           <input ref={fileRef} type="file" accept=".docx" className="hidden" onChange={onFileInput} />
         </div>
 
-        {/* Textarea */}
         <div className="flex-1 p-4 overflow-hidden">
           <Textarea
             value={manuscript}
