@@ -171,9 +171,9 @@ const PdfEngine = () => {
   const extracted = useMemo(() => extractTitleAuthor(manuscript), [manuscript]);
   const wc = useMemo(() => wordCount(manuscript), [manuscript]);
 
-  // BUG 1 FIX: always use user input, fallback to "Untitled Book" — never chapter heading
-  const effectiveTitle = bookTitleInput.trim() || "Untitled Book";
-  const effectiveAuthor = authorInput.trim() || extracted.author;
+  // Title/author: always read from user input state, with safe fallbacks
+  const effectiveTitle = bookTitleInput.trim() || "My Book";
+  const effectiveAuthor = authorInput.trim() || "Author Name";
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith(".docx")) {
