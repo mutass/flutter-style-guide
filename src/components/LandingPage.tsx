@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -5,6 +6,7 @@ import {
   FileText,
   Headphones,
   Globe,
+  Check,
 } from "lucide-react";
 
 interface LandingPageProps {
@@ -28,7 +30,36 @@ const stats = [
   { num: "300 DPI", label: "PDF Export Quality" },
 ];
 
+const pricingTiers = [
+  {
+    name: "Starter",
+    price: "Free",
+    sub: "Forever free",
+    features: ["PDF Engine (eBook only)", "Royalty Calculator", "Spine Width Calculator"],
+    cta: "Get Started Free",
+    popular: false,
+  },
+  {
+    name: "Author",
+    price: "$19",
+    sub: "/month",
+    features: ["Unlimited PDF Engine", "Cover Checker", "Landing Page Builder"],
+    cta: "Start Free Trial",
+    popular: true,
+  },
+  {
+    name: "Publisher",
+    price: "$49",
+    sub: "/month",
+    features: ["AI Voice Agent", "Unlimited Lead CRM", "Email & SMS sequences"],
+    cta: "Start Free Trial",
+    popular: false,
+  },
+];
+
 const LandingPage = ({ onOpenApp }: LandingPageProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden" style={{ background: "var(--gradient-body)" }}>
       {/* Grid overlay */}
@@ -48,9 +79,15 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
           <span className="text-primary">Amazon</span> <span className="text-foreground">Unlocked</span>
         </div>
         <div className="hidden md:flex items-center gap-0.5">
-          {["Unlock", "About Us", "Marketing", "KDP Sales"].map((link, i) => (
-            <a key={link} className={`text-sm font-medium px-4 py-1.5 rounded-full border border-transparent transition-all cursor-pointer ${i === 0 ? "bg-primary/[0.12] border-primary/[0.2] text-primary" : "text-foreground hover:border-primary/[0.12] hover:bg-primary/[0.06]"}`}>
-              {link}
+          {[
+            { label: "Unlock", action: () => {} },
+            { label: "About Us", action: () => {} },
+            { label: "Marketing", action: () => {} },
+            { label: "Pricing", action: () => navigate("/pricing") },
+            { label: "KDP Sales", action: () => {} },
+          ].map((link, i) => (
+            <a key={link.label} onClick={link.action} className={`text-sm font-medium px-4 py-1.5 rounded-full border border-transparent transition-all cursor-pointer ${i === 0 ? "bg-primary/[0.12] border-primary/[0.2] text-primary" : "text-foreground hover:border-primary/[0.12] hover:bg-primary/[0.06]"}`}>
+              {link.label}
             </a>
           ))}
         </div>
@@ -124,8 +161,48 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
         </div>
       </section>
 
+      {/* Pricing Preview */}
+      <section className="py-24 px-6 md:px-16 relative overflow-hidden bg-background">
+        <div className="text-center text-[0.68rem] font-bold uppercase tracking-[0.15em] text-primary mb-3.5">Pricing</div>
+        <h2 className="text-center text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-3.5">Simple, Transparent Pricing</h2>
+        <p className="text-center text-muted text-base max-w-[460px] mx-auto mb-12 leading-relaxed">Start free. Upgrade when you're ready.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-[900px] mx-auto mb-8">
+          {pricingTiers.map((tier) => (
+            <div key={tier.name} className={`bg-card border rounded-[14px] p-6 transition-all hover:border-primary/25 hover:-translate-y-1 ${tier.popular ? "border-primary/40 shadow-[0_0_30px_rgba(0,229,255,0.08)]" : "border-[rgba(255,255,255,0.06)]"}`}>
+              {tier.popular && (
+                <div className="text-[0.6rem] font-bold uppercase tracking-widest text-primary mb-2">Most Popular</div>
+              )}
+              <div className="text-lg font-bold text-foreground">{tier.name}</div>
+              <div className="flex items-baseline gap-1 mb-4">
+                <span className="text-3xl font-black text-foreground">{tier.price}</span>
+                {tier.sub !== "Forever free" && <span className="text-sm text-muted">{tier.sub}</span>}
+                {tier.sub === "Forever free" && <span className="text-xs text-muted ml-1">{tier.sub}</span>}
+              </div>
+              <div className="space-y-2 mb-5">
+                {tier.features.map((f) => (
+                  <div key={f} className="flex items-center gap-2 text-sm">
+                    <Check size={13} className="text-emerald flex-shrink-0" />
+                    <span className="text-muted">{f}</span>
+                  </div>
+                ))}
+              </div>
+              <button onClick={onOpenApp} className={`w-full py-2.5 rounded-lg font-bold text-sm transition-all ${tier.popular ? "bg-primary text-primary-foreground hover:shadow-[0_0_24px_rgba(0,229,255,0.3)]" : "bg-transparent border border-primary/[0.12] text-foreground hover:border-primary hover:text-primary"}`}>
+                {tier.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center">
+          <a onClick={() => navigate("/pricing")} className="text-sm font-semibold text-primary cursor-pointer hover:underline">
+            See full pricing →
+          </a>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-24 px-6 md:px-16 text-center relative overflow-hidden bg-background">
+      <section className="py-24 px-6 md:px-16 text-center relative overflow-hidden" style={{ background: "hsl(222 50% 6%)" }}>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,80,200,0.14) 0%, transparent 65%)" }} />
         <h2 className="text-3xl md:text-5xl font-black text-foreground tracking-tight mb-4 relative z-[1]">Ready to Own Your Audience?</h2>
         <p className="text-muted text-base max-w-[460px] mx-auto mb-10 leading-relaxed relative z-[1]">Stop renting readers from Amazon. Build a direct pipeline to your audience — with calls, emails, and landing pages that convert.</p>
@@ -142,14 +219,14 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
             <p className="text-sm text-muted leading-relaxed max-w-[280px]">The all-in-one KDP marketing suite. Format manuscripts, capture leads, and close sales — from one dashboard.</p>
           </div>
           {[
-            { title: "Product", links: ["Dashboard", "Manuscript Engine", "Landing Pages", "AI Agent"] },
-            { title: "Resources", links: ["Documentation", "API Reference", "Blog", "Changelog"] },
-            { title: "Company", links: ["About", "Careers", "Contact", "Legal"] },
+            { title: "Product", links: [{ label: "Dashboard", action: onOpenApp }, { label: "Manuscript Engine", action: onOpenApp }, { label: "Landing Pages", action: onOpenApp }, { label: "AI Agent", action: onOpenApp }, { label: "Pricing", action: () => navigate("/pricing") }] },
+            { title: "Resources", links: [{ label: "Documentation", action: () => {} }, { label: "API Reference", action: () => {} }, { label: "Blog", action: () => {} }, { label: "Changelog", action: () => {} }] },
+            { title: "Company", links: [{ label: "About", action: () => {} }, { label: "Careers", action: () => {} }, { label: "Contact", action: () => {} }, { label: "Legal", action: () => {} }] },
           ].map(col => (
             <div key={col.title}>
               <h4 className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-primary mb-4">{col.title}</h4>
               {col.links.map(link => (
-                <a key={link} className="block text-sm text-muted mb-2.5 cursor-pointer transition-colors hover:text-foreground">{link}</a>
+                <a key={link.label} onClick={link.action} className="block text-sm text-muted mb-2.5 cursor-pointer transition-colors hover:text-foreground">{link.label}</a>
               ))}
             </div>
           ))}
