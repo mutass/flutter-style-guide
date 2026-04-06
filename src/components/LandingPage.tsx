@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Users,
-  Mail,
-  FileText,
   Headphones,
+  Mail,
+  Users,
   Globe,
+  FileText,
+  LayoutDashboard,
   Check,
 } from "lucide-react";
 
@@ -14,44 +14,44 @@ interface LandingPageProps {
 }
 
 const features = [
-  { icon: FileText, title: "Manuscript Engine", desc: "Auto-detects chapters, applies KDP gutter margins, and exports 300 DPI PDF/A files fully compatible with Amazon's previewer." },
-  { icon: Users, title: "Lead Capture CRM", desc: "High-conversion landing page templates collect phone numbers and emails. All leads sync in real time." },
   { icon: Headphones, title: "AI Voice Agent", desc: "Sarah — your AI agent — calls warm leads automatically with personalised scripts and TCPA opt-out built in." },
   { icon: Mail, title: "Email & SMS Sequences", desc: "Automated follow-up campaigns nurture leads from first click to Amazon purchase, review, and repeat buyer." },
-  { icon: Globe, title: "Landing Page Builder", desc: "Drag-free visual builder creates high-conversion book pages with live preview, templates, and lead capture forms." },
-  { icon: LayoutDashboard, title: "Analytics Dashboard", desc: "Track every conversion, call, and sale. Real-time metrics show exactly what's working across your entire catalog." },
+  { icon: Users, title: "Lead Capture CRM", desc: "High-conversion landing page templates collect phone numbers and emails. All leads sync in real time." },
+  { icon: Globe, title: "Landing Page Builder", desc: "Four high-converting templates. Collect emails and phone numbers from readers and sync leads to your CRM in real time." },
+  { icon: FileText, title: "Manuscript Engine", desc: "Auto-detects chapters, applies KDP gutter margins, and exports 300 DPI PDF/A files fully compatible with Amazon's previewer." },
+  { icon: LayoutDashboard, title: "Algorithm Boosting", desc: "Track every conversion, call, and sale. Real-time metrics show exactly what's working across your entire catalog." },
 ];
 
 const stats = [
   { num: "248+", label: "Active Leads" },
   { num: "62%", label: "Call Answer Rate" },
-  { num: "12", label: "Manuscripts" },
+  { num: "41%", label: "Email Open Rate" },
   { num: "8.4%", label: "Conversion Rate" },
   { num: "300 DPI", label: "PDF Export Quality" },
 ];
 
 const pricingTiers = [
   {
-    name: "Starter",
+    name: "Writer",
     price: "Free",
     sub: "Forever free",
-    features: ["PDF Engine (eBook only)", "Royalty Calculator", "Spine Width Calculator"],
-    cta: "Get Started Free",
+    features: ["PDF Engine (eBook only)", "Royalty Calculator", "Cover Checker (3/mo)"],
+    cta: "Start Free",
     popular: false,
   },
   {
     name: "Author",
-    price: "$19",
+    price: "$29",
     sub: "/month",
-    features: ["Unlimited PDF Engine", "Cover Checker", "Landing Page Builder"],
+    features: ["Landing Pages + Lead CRM", "Email sequences (500/mo)", "Unlimited PDF Engine"],
     cta: "Start Free Trial",
     popular: true,
   },
   {
     name: "Publisher",
-    price: "$49",
+    price: "$79",
     sub: "/month",
-    features: ["AI Voice Agent", "Unlimited Lead CRM", "Email & SMS sequences"],
+    features: ["AI Voice Agent (200 min)", "SMS sequences (300/mo)", "Unlimited everything"],
     cta: "Start Free Trial",
     popular: false,
   },
@@ -59,6 +59,11 @@ const pricingTiers = [
 
 const LandingPage = ({ onOpenApp }: LandingPageProps) => {
   const navigate = useNavigate();
+
+  const scrollTo = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  };
 
   return (
     <div className="flex flex-col min-h-screen relative overflow-hidden" style={{ background: "var(--gradient-body)" }}>
@@ -80,13 +85,13 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
         </div>
         <div className="hidden md:flex items-center gap-0.5">
           {[
-            { label: "Unlock", action: () => {} },
-            { label: "About Us", action: () => {} },
-            { label: "Marketing", action: () => {} },
+            { label: "Unlock", action: () => scrollTo("hero") },
+            { label: "About Us", action: () => navigate("/about") },
+            { label: "Marketing", action: () => scrollTo("features") },
             { label: "Pricing", action: () => navigate("/pricing") },
-            { label: "KDP Sales", action: () => {} },
-          ].map((link, i) => (
-            <a key={link.label} onClick={link.action} className={`text-sm font-medium px-4 py-1.5 rounded-full border border-transparent transition-all cursor-pointer ${i === 0 ? "bg-primary/[0.12] border-primary/[0.2] text-primary" : "text-foreground hover:border-primary/[0.12] hover:bg-primary/[0.06]"}`}>
+            { label: "KDP Sales", action: () => scrollTo("pricing-preview") },
+          ].map((link) => (
+            <a key={link.label} onClick={link.action} className={`text-sm font-medium px-4 py-1.5 rounded-full border border-transparent transition-all cursor-pointer ${link.label === "Pricing" ? "bg-primary/[0.12] border-primary/[0.2] text-primary" : "text-foreground hover:border-primary/[0.12] hover:bg-primary/[0.06]"}`}>
               {link.label}
             </a>
           ))}
@@ -98,7 +103,7 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
       </nav>
 
       {/* Hero */}
-      <section className="flex-1 flex flex-col items-center justify-center text-center px-10 pt-20 relative z-[1]">
+      <section id="hero" className="flex-1 flex flex-col items-center justify-center text-center px-10 pt-20 relative z-[1]">
         <div className="inline-flex items-center gap-2 bg-primary/[0.08] border border-primary/[0.2] rounded-full px-4 py-1.5 text-xs font-semibold text-primary uppercase tracking-widest mb-7">
           <span className="w-1.5 h-1.5 bg-primary rounded-full animate-blink" />
           KDP Marketing Suite · Now Live
@@ -107,8 +112,8 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
           <span className="text-primary">Amazon</span> <span className="text-foreground">Unlocked</span>
         </h1>
         <div className="text-base md:text-xl font-light text-muted uppercase tracking-[0.08em] mb-6">KDP Marketing</div>
-        <p className="max-w-[540px] text-base text-muted leading-7 mb-9">
-          Transform your manuscript into a revenue machine. Capture leads, automate follow-ups, and dominate Amazon's algorithm — all from one dashboard.
+        <p className="max-w-[580px] text-base text-muted leading-7 mb-9">
+          Capture reader leads from your book landing page, follow up automatically with email sequences, and close sales with AI voice calls. The complete marketing engine built for KDP authors.
         </p>
         <div className="flex gap-2 justify-center flex-wrap mb-9">
           {["Amazon", "Marketing", "KDP Formatter", "AI Calls"].map(tag => (
@@ -143,7 +148,7 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
       </div>
 
       {/* Features */}
-      <section className="py-24 px-6 md:px-16 relative overflow-hidden" style={{ background: "hsl(222 50% 6%)" }}>
+      <section id="features" className="py-24 px-6 md:px-16 relative overflow-hidden" style={{ background: "hsl(222 50% 6%)" }}>
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "linear-gradient(90deg, transparent, hsl(186 100% 50%), transparent)" }} />
         <div className="text-center text-[0.68rem] font-bold uppercase tracking-[0.15em] text-primary mb-3.5">What's Inside</div>
         <h2 className="text-center text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-3.5">Everything an Author Needs</h2>
@@ -162,7 +167,7 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-24 px-6 md:px-16 relative overflow-hidden bg-background">
+      <section id="pricing-preview" className="py-24 px-6 md:px-16 relative overflow-hidden bg-background">
         <div className="text-center text-[0.68rem] font-bold uppercase tracking-[0.15em] text-primary mb-3.5">Pricing</div>
         <h2 className="text-center text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-3.5">Simple, Transparent Pricing</h2>
         <p className="text-center text-muted text-base max-w-[460px] mx-auto mb-12 leading-relaxed">Start free. Upgrade when you're ready.</p>
@@ -196,7 +201,7 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
 
         <div className="text-center">
           <a onClick={() => navigate("/pricing")} className="text-sm font-semibold text-primary cursor-pointer hover:underline">
-            See full pricing →
+            See full pricing and feature comparison →
           </a>
         </div>
       </section>
@@ -213,15 +218,36 @@ const LandingPage = ({ onOpenApp }: LandingPageProps) => {
 
       {/* Footer */}
       <footer className="border-t border-primary/[0.12] px-6 md:px-16 pt-16 pb-8" style={{ background: "hsl(222 50% 6%)" }}>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-[1100px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 max-w-[1100px] mx-auto">
           <div>
             <div className="text-xl font-black mb-3.5"><span className="text-primary">Amazon</span> Unlocked</div>
             <p className="text-sm text-muted leading-relaxed max-w-[280px]">The all-in-one KDP marketing suite. Format manuscripts, capture leads, and close sales — from one dashboard.</p>
           </div>
           {[
-            { title: "Product", links: [{ label: "Dashboard", action: onOpenApp }, { label: "Manuscript Engine", action: onOpenApp }, { label: "Landing Pages", action: onOpenApp }, { label: "AI Agent", action: onOpenApp }, { label: "Pricing", action: () => navigate("/pricing") }] },
-            { title: "Resources", links: [{ label: "Documentation", action: () => {} }, { label: "API Reference", action: () => {} }, { label: "Blog", action: () => {} }, { label: "Changelog", action: () => {} }] },
-            { title: "Company", links: [{ label: "About", action: () => {} }, { label: "Careers", action: () => {} }, { label: "Contact", action: () => {} }, { label: "Legal", action: () => {} }] },
+            { title: "Product", links: [
+              { label: "Dashboard", action: onOpenApp },
+              { label: "Manuscript Engine", action: onOpenApp },
+              { label: "Lead CRM", action: onOpenApp },
+              { label: "AI Voice Agent", action: onOpenApp },
+              { label: "Pricing", action: () => navigate("/pricing") },
+            ]},
+            { title: "Company", links: [
+              { label: "About Us", action: () => navigate("/about") },
+              { label: "Blog", action: () => navigate("/blog") },
+              { label: "Careers", action: () => navigate("/careers") },
+              { label: "Contact", action: () => navigate("/contact") },
+            ]},
+            { title: "Legal", links: [
+              { label: "Privacy Policy", action: () => navigate("/privacy") },
+              { label: "Terms of Service", action: () => navigate("/terms") },
+              { label: "TCPA Compliance", action: () => navigate("/tcpa") },
+              { label: "Cookie Policy", action: () => navigate("/cookies") },
+            ]},
+            { title: "Resources", links: [
+              { label: "Documentation", action: () => {} },
+              { label: "API Reference", action: () => {} },
+              { label: "Changelog", action: () => {} },
+            ]},
           ].map(col => (
             <div key={col.title}>
               <h4 className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-primary mb-4">{col.title}</h4>
