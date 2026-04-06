@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Shield, CreditCard, RefreshCw, HelpCircle } from "lucide-react";
+import { Check, X, Shield, CreditCard, RefreshCw, HelpCircle, Phone, Mail, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,89 +14,115 @@ import {
 
 const tiers = [
   {
-    name: "Starter",
+    name: "Writer",
     monthlyPrice: 0,
     annualPrice: 0,
     badge: null,
-    cta: "Get Started Free",
+    cta: "Start Free — No Card Needed",
     ctaVariant: "outline" as const,
+    note: "No credit card required. Upgrade anytime.",
     plan: null,
     features: [
-      "PDF Engine (eBook only, up to 3 books/month)",
-      "Royalty Calculator",
-      "Spine Width Calculator",
-      "Upload Checklist (read-only)",
-      "KDP Keyword Finder (3 searches/day)",
+      "PDF Engine — eBook only, up to 3 exports/month",
+      "Royalty Calculator — unlimited",
+      "Spine Width Calculator — unlimited",
+      "Upload Checklist — read only",
+      "Keyword Finder — 3 searches per day",
+      "Cover Checker — 3 checks per month",
     ],
     excluded: [
-      "Cover Checker",
-      "Price & BSR Tracker",
-      "Landing Page Builder",
-      "AI Voice Agent",
-      "Lead CRM",
-      "Email & SMS Sequences",
+      "No AI calls",
+      "No SMS messages",
+      "No email sequences",
+      "No lead CRM",
+      "No landing pages",
     ],
   },
   {
     name: "Author",
-    monthlyPrice: 19,
-    annualPrice: 15,
+    monthlyPrice: 29,
+    annualPrice: 23,
     badge: "Most Popular",
     cta: "Start 7-Day Free Trial",
     ctaVariant: "default" as const,
+    note: "No credit card required for trial.",
     plan: "author",
     features: [
-      "Everything in Starter",
-      "PDF Engine (eBook + Paperback, unlimited)",
-      "Cover Checker (unlimited uploads)",
-      "Price & BSR Tracker (up to 5 books)",
-      "Landing Page Builder (3 templates)",
-      "Upload Checklist (interactive with save)",
-      "Keyword Finder (unlimited)",
-      "Priority email support",
+      "Everything in Writer",
+      "PDF Engine — eBook + Paperback, unlimited exports",
+      "Landing Page Builder — all 4 templates",
+      "Lead CRM — up to 500 leads",
+      "Email Sequences — up to 3 active, 500 emails/month",
+      "Cover Checker — unlimited",
+      "Price & BSR Tracker — up to 5 books",
+      "Keyword Finder — unlimited",
     ],
     excluded: [
-      "AI Voice Agent",
-      "Lead CRM",
-      "Email & SMS Sequences",
-      "White-label PDF output",
+      "No AI voice calls",
+      "No SMS messages",
     ],
   },
   {
     name: "Publisher",
-    monthlyPrice: 49,
-    annualPrice: 39,
+    monthlyPrice: 79,
+    annualPrice: 63,
     badge: null,
     cta: "Start 7-Day Free Trial",
     ctaVariant: "default" as const,
+    note: "Includes 200 call minutes + 300 SMS. Additional usage billed separately.",
     plan: "publisher",
     features: [
       "Everything in Author",
-      "AI Voice Agent (Sarah — unlimited calls)",
-      "Lead CRM (unlimited leads)",
-      "Email & SMS sequences",
-      "Landing Page Builder (all templates + custom color)",
-      "Price tracker (unlimited books)",
-      "White-label PDF output (remove branding)",
-      "Dedicated account manager",
+      "AI Voice Agent (Sarah) — 200 minutes/month included",
+      "SMS sequences — 300 messages/month included",
+      "Lead CRM — unlimited leads",
+      "Email Sequences — unlimited, 2,000 emails/month",
+      "Landing Pages — unlimited, custom color, remove branding",
+      "Price Tracker — unlimited books",
+      "Priority support — 4 hour response",
+      "White-label PDF — remove branding from exports",
     ],
     excluded: [],
   },
 ];
 
+const addOns = [
+  { icon: Phone, title: "Extra Call Minutes", price: "$8", unit: "per 100 minutes", detail: "~$0.08/min — covers Twilio cost + margin" },
+  { icon: Mail, title: "Extra SMS Messages", price: "$5", unit: "per 500 messages", detail: "~$0.01/msg — covers Twilio cost + margin" },
+  { icon: Zap, title: "Extra Email Sends", price: "$4", unit: "per 1,000 emails", detail: "Scale your email outreach as needed" },
+];
+
 const guarantees = [
   { icon: Shield, label: "AES-256 encryption" },
-  { icon: Shield, label: "TCPA compliance" },
+  { icon: Shield, label: "TCPA compliant AI calls" },
   { icon: RefreshCw, label: "Cancel anytime" },
   { icon: CreditCard, label: "30-day money-back guarantee" },
+  { icon: Shield, label: "No setup fees" },
+  { icon: Shield, label: "GDPR ready" },
+];
+
+const comparisonRows = [
+  { feature: "PDF Engine exports", writer: "3/month (eBook)", author: "Unlimited", publisher: "Unlimited" },
+  { feature: "Landing page templates", writer: "—", author: "4 templates", publisher: "Unlimited + custom" },
+  { feature: "Lead CRM capacity", writer: "—", author: "500 leads", publisher: "Unlimited" },
+  { feature: "Email sequences", writer: "—", author: "3 active", publisher: "Unlimited" },
+  { feature: "Emails per month", writer: "—", author: "500", publisher: "2,000" },
+  { feature: "AI call minutes", writer: "—", author: "—", publisher: "200 included" },
+  { feature: "SMS messages", writer: "—", author: "—", publisher: "300 included" },
+  { feature: "Cover checker", writer: "3/month", author: "Unlimited", publisher: "Unlimited" },
+  { feature: "Keyword searches", writer: "3/day", author: "Unlimited", publisher: "Unlimited" },
+  { feature: "Price tracker books", writer: "—", author: "5 books", publisher: "Unlimited" },
+  { feature: "White-label PDF", writer: "✗", author: "✗", publisher: "✓" },
+  { feature: "Priority support", writer: "✗", author: "✗", publisher: "✓" },
 ];
 
 const faqs = [
-  { q: "Can I change plans later?", a: "Yes, upgrade or downgrade anytime from your account settings." },
-  { q: "Is there a free trial?", a: "Author and Publisher plans include a 7-day free trial, no credit card required." },
-  { q: "Do you store my manuscript?", a: "No — all PDF processing happens in your browser. We never see your content." },
-  { q: "What payment methods do you accept?", a: "All major credit cards via Stripe. Annual plans available by invoice." },
-  { q: "Can I use this for non-KDP platforms?", a: "Yes — our PDF formatting works for IngramSpark, Draft2Digital, and any platform accepting standard PDF." },
+  { q: "Why do AI calls cost extra above the included minutes?", a: "AI voice calls use Twilio's voice API plus real-time AI processing. Each minute costs us money in infrastructure. The included minutes cover typical author usage — power users can top up as needed." },
+  { q: "What happens if I run out of call minutes mid-month?", a: "Your AI calling pauses automatically. You will get an email notification and can top up instantly from your account. We never charge you without warning." },
+  { q: "Can I use my own Twilio account?", a: "Not currently. We manage all Twilio infrastructure to ensure TCPA compliance and call quality. This is planned for a future enterprise tier." },
+  { q: "Is there a free trial for Publisher?", a: "Yes — 7 days free, no credit card needed. You get 20 AI call minutes and 50 SMS messages during the trial to test the full pipeline." },
+  { q: "What counts as a \"call minute\"?", a: "From the moment your lead answers to the moment the call ends. Unanswered calls or calls under 6 seconds are not charged." },
+  { q: "Can I cancel anytime?", a: "Yes. Cancel from your account settings with one click. You keep access until the end of your billing period. No cancellation fees." },
 ];
 
 export default function Pricing() {
@@ -104,7 +130,7 @@ export default function Pricing() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Pricing — KDP Unlocked";
+    document.title = "Pricing — Amazon Unlocked";
   }, []);
 
   return (
@@ -115,7 +141,7 @@ export default function Pricing() {
           <span className="text-primary">Amazon</span> <span className="text-foreground">Unlocked</span>
         </div>
         <div className="hidden md:flex items-center gap-0.5">
-          {[{ label: "Unlock", path: "/" }, { label: "About Us", path: "/" }, { label: "Marketing", path: "/" }, { label: "Pricing", path: "/pricing" }, { label: "KDP Sales", path: "/" }].map((link) => (
+          {[{ label: "Unlock", path: "/" }, { label: "About Us", path: "/about" }, { label: "Marketing", path: "/" }, { label: "Pricing", path: "/pricing" }, { label: "KDP Sales", path: "/" }].map((link) => (
             <a key={link.label} onClick={() => navigate(link.path)} className={`text-sm font-medium px-4 py-1.5 rounded-full border border-transparent transition-all cursor-pointer ${link.label === "Pricing" ? "bg-primary/[0.12] border-primary/[0.2] text-primary" : "text-foreground hover:border-primary/[0.12] hover:bg-primary/[0.06]"}`}>
               {link.label}
             </a>
@@ -135,8 +161,8 @@ export default function Pricing() {
         <h1 className="text-4xl md:text-6xl font-black tracking-tight text-foreground mb-4">
           Choose Your <span className="text-primary">Plan</span>
         </h1>
-        <p className="text-muted text-base max-w-[500px] mx-auto mb-8 leading-relaxed">
-          Start free. Upgrade when you're ready. Every plan includes browser-based processing — your manuscripts never leave your device.
+        <p className="text-muted text-base max-w-[520px] mx-auto mb-8 leading-relaxed">
+          Start free. Upgrade when you're ready. AI calls and SMS are usage-based so you only pay for what you use.
         </p>
 
         {/* Toggle */}
@@ -144,7 +170,7 @@ export default function Pricing() {
           <span className={`text-sm font-semibold ${!annual ? "text-foreground" : "text-muted"}`}>Monthly</span>
           <Switch checked={annual} onCheckedChange={setAnnual} />
           <span className={`text-sm font-semibold ${annual ? "text-foreground" : "text-muted"}`}>Annual</span>
-          {annual && <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Save up to 21%</Badge>}
+          {annual && <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">Save 20%</Badge>}
         </div>
       </section>
 
@@ -167,18 +193,19 @@ export default function Pricing() {
                   {price > 0 && <span className="text-sm text-muted">/month</span>}
                 </div>
                 {annual && price > 0 && (
-                  <div className="text-xs text-muted mb-4">Billed annually</div>
+                  <div className="text-xs text-muted mb-2">Billed annually (${price * 12}/year)</div>
                 )}
-                {!annual && price === 0 && <div className="text-xs text-muted mb-4">Forever free</div>}
-                {!annual && price > 0 && <div className="text-xs text-muted mb-4">Billed monthly</div>}
+                {!annual && price === 0 && <div className="text-xs text-muted mb-2">Forever free</div>}
+                {!annual && price > 0 && <div className="text-xs text-muted mb-2">Billed monthly</div>}
 
                 <Button
                   variant={tier.ctaVariant}
-                  className={`w-full mb-6 font-bold ${isPopular ? "bg-primary text-primary-foreground hover:shadow-[0_0_24px_rgba(0,229,255,0.3)]" : ""}`}
+                  className={`w-full mb-2 font-bold ${isPopular ? "bg-primary text-primary-foreground hover:shadow-[0_0_24px_rgba(0,229,255,0.3)]" : ""}`}
                   onClick={() => navigate(tier.plan ? `/signup?plan=${tier.plan}` : "/signup")}
                 >
                   {tier.cta}
                 </Button>
+                <div className="text-[0.65rem] text-muted text-center mb-5">{tier.note}</div>
 
                 <div className="space-y-2.5 flex-1">
                   {tier.features.map((f) => (
@@ -200,16 +227,69 @@ export default function Pricing() {
         </div>
       </section>
 
+      {/* Add-ons */}
+      <section className="max-w-[1100px] mx-auto px-6 pb-16">
+        <div className="text-center mb-2">
+          <h2 className="text-2xl font-extrabold text-foreground">Need more calls or messages?</h2>
+        </div>
+        <p className="text-center text-muted text-sm max-w-[560px] mx-auto mb-8">
+          Publisher plan includes 200 call minutes and 300 SMS per month. Buy more anytime — no contract.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-[800px] mx-auto">
+          {addOns.map((addon) => (
+            <div key={addon.title} className="bg-card border border-border rounded-xl p-5 text-center">
+              <addon.icon size={24} className="text-primary mx-auto mb-3" />
+              <div className="font-bold text-foreground mb-1">{addon.title}</div>
+              <div className="text-2xl font-black text-primary mb-0.5">{addon.price}</div>
+              <div className="text-xs text-muted mb-2">{addon.unit}</div>
+              <div className="text-[0.65rem] text-muted">{addon.detail}</div>
+            </div>
+          ))}
+        </div>
+        <p className="text-center text-[0.65rem] text-muted mt-4">AI call costs include connection, AI processing, and TCPA compliance logging.</p>
+      </section>
+
       {/* All plans include */}
       <section className="border-y border-primary/[0.12] py-10 px-6" style={{ background: "rgba(5,10,26,0.65)" }}>
         <div className="text-center text-[0.68rem] font-bold uppercase tracking-[0.15em] text-primary mb-6">All plans include</div>
-        <div className="flex justify-center flex-wrap gap-6 max-w-[800px] mx-auto">
+        <div className="flex justify-center flex-wrap gap-6 max-w-[900px] mx-auto">
           {guarantees.map((g) => (
             <div key={g.label} className="flex items-center gap-2 text-sm text-muted">
               <g.icon size={16} className="text-emerald" />
               {g.label}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Feature Comparison */}
+      <section className="max-w-[900px] mx-auto py-20 px-6">
+        <h2 className="text-center text-2xl font-extrabold text-foreground mb-10">Full Feature Comparison</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left text-sm font-semibold text-muted py-3 px-4">Feature</th>
+                <th className="text-center text-sm font-semibold text-muted py-3 px-3">Writer</th>
+                <th className="text-center text-sm font-semibold text-muted py-3 px-3">Author</th>
+                <th className="text-center text-sm font-semibold text-primary py-3 px-3 bg-primary/5 rounded-t-lg">Publisher</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map((row, i) => (
+                <tr key={i} className="border-b border-border/50">
+                  <td className="text-sm text-foreground py-3 px-4">{row.feature}</td>
+                  <td className="text-center text-sm text-muted py-3 px-3">{row.writer}</td>
+                  <td className="text-center text-sm text-muted py-3 px-3">{row.author}</td>
+                  <td className="text-center text-sm py-3 px-3 bg-primary/5">
+                    <span className={row.publisher === "✓" ? "text-emerald font-bold" : row.publisher === "✗" ? "text-muted" : "text-foreground font-medium"}>
+                      {row.publisher}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -240,8 +320,8 @@ export default function Pricing() {
           </div>
           {[
             { title: "Product", links: [{ label: "Dashboard", path: "/" }, { label: "Manuscript Engine", path: "/" }, { label: "Landing Pages", path: "/" }, { label: "AI Agent", path: "/" }, { label: "Pricing", path: "/pricing" }] },
-            { title: "Resources", links: [{ label: "Documentation", path: "/" }, { label: "API Reference", path: "/" }, { label: "Blog", path: "/" }] },
-            { title: "Company", links: [{ label: "About", path: "/" }, { label: "Contact", path: "/" }, { label: "Legal", path: "/" }] },
+            { title: "Resources", links: [{ label: "Documentation", path: "/" }, { label: "API Reference", path: "/" }, { label: "Blog", path: "/blog" }] },
+            { title: "Company", links: [{ label: "About", path: "/about" }, { label: "Contact", path: "/contact" }, { label: "Privacy", path: "/privacy" }, { label: "Terms", path: "/terms" }] },
           ].map(col => (
             <div key={col.title}>
               <h4 className="text-[0.7rem] font-bold uppercase tracking-[0.12em] text-primary mb-4">{col.title}</h4>

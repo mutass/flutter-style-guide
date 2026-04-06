@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Crown,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AgentTab from "./AgentTab";
@@ -41,45 +42,38 @@ interface DashboardProps {
 const navSections = [
   {
     label: "Overview",
+    highlight: false,
     items: [
       { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     ],
   },
   {
-    label: "Format & Publish",
+    label: "Marketing Engine",
+    highlight: true,
+    items: [
+      { id: "agent", icon: Headphones, label: "AI Call Agent", live: true },
+      { id: "email", icon: Mail, label: "Email & Sequences" },
+      { id: "leads", icon: Users, label: "Leads CRM" },
+      { id: "pages", icon: Globe, label: "Landing Pages" },
+    ],
+  },
+  {
+    label: "Publishing Tools",
+    highlight: false,
     items: [
       { id: "pdf", icon: FileText, label: "PDF Engine" },
       { id: "cover", icon: Image, label: "Cover Checker" },
-      { id: "spine", icon: Ruler, label: "Spine Calculator" },
-      { id: "checklist", icon: CheckSquare, label: "Upload Checklist" },
-    ],
-  },
-  {
-    label: "Research & Optimise",
-    items: [
       { id: "royalty", icon: DollarSign, label: "Royalty Calculator" },
       { id: "keywords", icon: Search, label: "Keyword Finder" },
+      { id: "spine", icon: Ruler, label: "Spine Calculator" },
+      { id: "checklist", icon: CheckSquare, label: "Upload Checklist" },
       { id: "tracker", icon: LineChart, label: "Price Tracker" },
-    ],
-  },
-  {
-    label: "Grow Readers",
-    items: [
-      { id: "pages", icon: Globe, label: "Landing Pages" },
-      { id: "leads", icon: Users, label: "Leads" },
-      { id: "email", icon: Mail, label: "Email & Calls" },
-    ],
-  },
-  {
-    label: "Automation",
-    items: [
-      { id: "agent", icon: Headphones, label: "AI Call Agent" },
     ],
   },
 ];
 
 const pageTitles: Record<string, [string, string]> = {
-  dashboard: ["Author Dashboard", "Your KDP publishing command centre"],
+  dashboard: ["Author Dashboard", "Marketing pipeline overview · 21 sales this month"],
   pdf: ["PDF Engine", "Format manuscripts for KDP eBook and Paperback upload"],
   cover: ["Cover Checker", "Validate your cover against Amazon KDP requirements"],
   spine: ["Spine Calculator", "Get exact spine width for your trim size and page count"],
@@ -88,9 +82,9 @@ const pageTitles: Record<string, [string, string]> = {
   keywords: ["Keyword Finder", "Generate 7 optimised KDP backend keywords"],
   tracker: ["Price Tracker", "Log price changes and track Best Sellers Rank over time"],
   pages: ["Landing Page Builder", "Create sales pages for your books"],
-  leads: ["Leads Centre", "Import, score, and contact your readers"],
-  email: ["CRM & Communication", "Email sequences and call lists"],
-  agent: ["AI Call Agent", "Automated voice outreach system"],
+  leads: ["Leads CRM", "248 active leads · 62% answer rate · 8.4% conversion"],
+  email: ["Email & Sequences", "Automated follow-up sequences for every lead in your pipeline"],
+  agent: ["AI Call Agent", "Automated voice outreach — TCPA compliant · Twilio powered"],
 };
 
 const TAB_COMPONENTS: Record<string, React.ComponentType> = {
@@ -107,11 +101,25 @@ const TAB_COMPONENTS: Record<string, React.ComponentType> = {
   spine: SpineCalculator,
 };
 
-const metrics = [
-  { label: "Total Leads", value: "248", sub: "↑ 14% vs last month", trend: "up" },
-  { label: "Answer Rate", value: "62%", sub: "High efficiency", trend: "up" },
-  { label: "Manuscripts", value: "12", sub: "3 processing", trend: "neutral" },
-  { label: "CVR Sales", value: "8.4%", sub: "Needs attention", trend: "warn" },
+const heroMetrics = [
+  { label: "Active Leads", value: "248", sub: "↑ 14% vs last month", trend: "up" },
+  { label: "Call Answer Rate", value: "62%", sub: "High efficiency", trend: "up" },
+  { label: "Email Open Rate", value: "41%", sub: "Above industry avg", trend: "up" },
+  { label: "Conversion Rate", value: "8.4%", sub: "↑ 2.1% this month", trend: "up" },
+];
+
+const secondaryMetrics = [
+  { label: "Manuscripts", value: "12", sub: "3 processing" },
+  { label: "PDF Exports", value: "34", sub: "This month" },
+  { label: "Landing Pages Live", value: "3", sub: "Active now" },
+];
+
+const pipelineSteps = [
+  { label: "Landing Page", count: "1,240", icon: Globe },
+  { label: "Lead Captured", count: "248", icon: Users },
+  { label: "Email Sent", count: "189", icon: Mail },
+  { label: "AI Call Made", count: "143", icon: Phone },
+  { label: "Sale Converted", count: "21", icon: TrendingUp },
 ];
 
 const leads = [
@@ -130,16 +138,16 @@ const sourceBadge = (source: string) => {
 };
 
 const quickActions = [
-  { id: "pdf", icon: FileText, title: "Format a manuscript", desc: "Convert your .docx to KDP-ready PDF" },
-  { id: "cover", icon: Image, title: "Check my cover", desc: "Validate DPI, dimensions & aspect ratio" },
-  { id: "royalty", icon: DollarSign, title: "Calculate royalties", desc: "See earnings per sale across formats" },
-  { id: "keywords", icon: Search, title: "Find keywords", desc: "Generate 7 optimised backend keywords" },
+  { id: "agent", icon: Headphones, title: "Launch AI Calls", desc: "Start automated voice outreach" },
+  { id: "email", icon: Mail, title: "Create email sequence", desc: "Set up automated follow-ups" },
+  { id: "leads", icon: Users, title: "View leads", desc: "Manage your reader pipeline" },
+  { id: "pdf", icon: FileText, title: "Format a manuscript", desc: "Convert .docx to KDP-ready PDF" },
 ];
 
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [title, sub] = pageTitles[activeTab] || ["Author Dashboard", "Your KDP publishing command centre"];
+  const [title, sub] = pageTitles[activeTab] || ["Author Dashboard", "Marketing pipeline overview"];
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -165,7 +173,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       <aside className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 fixed md:static z-[301] w-[248px] flex-shrink-0 border-r border-[rgba(255,255,255,0.06)] flex flex-col p-6 px-3.5 overflow-y-auto custom-scrollbar h-full transition-transform duration-200`} style={{ background: "hsl(222 50% 6%)" }}>
         <div className="flex items-center justify-between mb-8">
           <div className="font-black text-base tracking-tight px-2.5">
-            <span className="text-primary">KDP</span> <span className="text-foreground">UNLOCKED</span>
+            <span className="text-primary">Amazon</span> <span className="text-foreground">Unlocked</span>
           </div>
           <button className="md:hidden text-muted hover:text-foreground" onClick={() => setSidebarOpen(false)}>
             <X size={18} />
@@ -174,7 +182,13 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
         {navSections.map((section) => (
           <div key={section.label}>
-            <div className="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-muted px-2.5 mt-4 mb-1.5">{section.label}</div>
+            <div className={`px-2.5 mt-4 mb-1.5 font-bold uppercase tracking-[0.12em] ${
+              section.highlight
+                ? "text-primary text-[0.72rem]"
+                : "text-muted text-[0.62rem]"
+            }`}>
+              {section.label}
+            </div>
             {section.items.map((item) => (
               <button
                 key={item.id}
@@ -187,13 +201,21 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               >
                 <item.icon size={16} />
                 {item.label}
+                {"live" in item && item.live && (
+                  <span className="ml-auto flex items-center gap-1.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald" />
+                    </span>
+                    LIVE
+                  </span>
+                )}
               </button>
             ))}
           </div>
         ))}
 
         <div className="mt-auto space-y-2">
-          {/* Plan badge */}
           <div className="bg-card border border-border rounded-lg p-3 flex items-center justify-between">
             <div>
               <div className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-muted mb-0.5">Current Plan</div>
@@ -203,8 +225,6 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               <Crown size={11} /> Upgrade
             </button>
           </div>
-
-          {/* Security badge */}
           <div className="bg-emerald/[0.06] border border-emerald/[0.15] rounded-lg p-3">
             <div className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-muted mb-1">Security</div>
             <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald">
@@ -229,7 +249,6 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            {/* Upgrade button (Starter plan) */}
             <button
               onClick={() => navigate("/pricing")}
               className="hidden sm:flex items-center gap-1.5 border border-accent/30 text-accent bg-accent/5 px-4 py-2 rounded-lg font-bold text-xs transition-all hover:border-accent hover:bg-accent/10"
@@ -260,18 +279,52 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 function DashboardContent({ onSwitchTab }: { onSwitchTab: (id: string) => void }) {
   return (
     <>
-      {/* Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {metrics.map((m, i) => (
+      {/* Hero Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        {heroMetrics.map((m, i) => (
           <div key={i} className="bg-card border border-[rgba(255,255,255,0.06)] rounded-[13px] p-5 transition-all hover:border-primary/20 hover:-translate-y-0.5 animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
             <div className="text-[0.63rem] font-bold uppercase tracking-[0.1em] text-muted mb-2">{m.label}</div>
             <div className="text-3xl font-black tracking-tight text-foreground">{m.value}</div>
-            <div className={`text-[0.7rem] mt-1 flex items-center gap-1 ${m.trend === "up" ? "text-emerald" : m.trend === "warn" ? "text-gold" : "text-muted"}`}>
-              {m.trend === "up" && <TrendingUp size={12} />}
+            <div className={`text-[0.7rem] mt-1 flex items-center gap-1 ${m.trend === "up" ? "text-emerald" : "text-muted"}`}>
+              <TrendingUp size={12} />
               {m.sub}
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        {secondaryMetrics.map((m, i) => (
+          <div key={i} className="bg-card border border-[rgba(255,255,255,0.06)] rounded-[10px] p-4">
+            <div className="text-[0.6rem] font-bold uppercase tracking-[0.1em] text-muted mb-1">{m.label}</div>
+            <div className="text-xl font-bold text-foreground">{m.value}</div>
+            <div className="text-[0.65rem] text-muted">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Marketing Pipeline */}
+      <div className="bg-card border border-[rgba(255,255,255,0.06)] rounded-[13px] p-5 mb-6">
+        <div className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted mb-4">Marketing Pipeline</div>
+        <div className="flex items-center justify-between gap-1 overflow-x-auto pb-2">
+          {pipelineSteps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1 flex-shrink-0">
+              <div className={`flex items-center gap-2 px-4 py-2.5 rounded-full border ${
+                i < 4 ? "bg-primary/10 border-primary/20 text-primary" : "bg-card border-[rgba(255,255,255,0.1)] text-muted"
+              }`}>
+                <step.icon size={14} />
+                <div>
+                  <div className="text-[0.6rem] font-bold uppercase tracking-wider">{step.label}</div>
+                  <div className="text-sm font-black">{step.count}</div>
+                </div>
+              </div>
+              {i < pipelineSteps.length - 1 && (
+                <ArrowRight size={14} className="text-muted/40 flex-shrink-0 mx-1" />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Quick Actions */}
